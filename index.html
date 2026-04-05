@@ -480,60 +480,72 @@
     // Użyjemy prostego BarcodeDetector API jeśli dostępne, w przeciwnym razie informacja
     let scanningActive = false;
 
-    async function updateCameraList() {
+async function updateCameraList() {
     try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
         
+        // Zapamiętujemy co było wybrane przed odświeżeniem listy
+        const currentSelection = cameraSelect.value;
         cameraSelect.innerHTML = '';
-        
-        if (videoDevices.length === 0) {
-            cameraSelect.style.display = 'none';
-            return;
-        }
 
         videoDevices.forEach((device, index) => {
             const option = document.createElement('option');
             option.value = device.deviceId;
             option.text = device.label || `Kamera ${index + 1}`;
+            // Jeśli to było wybrane wcześniej, ustawiamy jako selected
+            if (device.deviceId === currentSelection) {
+                option.selected = true;
+            }
             cameraSelect.appendChild(option);
         });
 
-        cameraSelect.style.display = 'inline-flex';
-        } catch (err) {
-            console.error("Błąd pobierania listy kamer:", err);
+        if (videoDevices.length > 0) {
+            cameraSelect.style.display = 'inline-flex';
         }
+    } catch (err) {
+        console.error("Błąd listy kamer:", err);
     }
+}
 
 cameraBtn.addEventListener('click', async () => {
-    if (mediaStream) stopCamera();
+    // Zatrzymujemy obecny strumień, jeśli istnieje
+    if (mediaStream) {
+        stopCamera();
+    }
 
     try {
-        // Skrócona wersja bez "testowania" uprawnień przed właściwym startem
-        const constraints = { 
-            video: { 
-                facingMode: "environment", // tylna kamera
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            } 
-        };
-        
+        const selectedId = cameraSelect.value;
+        let constraints;
+
+        // Jeśli wybrano konkretną kamerę z listy, używamy jej ID
+        if (selectedId) {
+            constraints = { 
+                video: { deviceId: { exact: selectedId } } 
+            };
+        } else {
+            // Jeśli nie wybrano nic (pierwszy start), celujemy w tylną kamerę
+            constraints = { 
+                video: { facingMode: "environment" } 
+            };
+        }
+
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         mediaStream = stream;
         video.srcObject = stream;
         videoContainer.style.display = 'block';
         
-        // Aktualizacja listy kamer dopiero PO uzyskaniu dostępu (opcjonalnie)
-        updateCameraList(); 
-        
+        // Ważne: aktualizujemy listę dopiero gdy mamy uprawnienia, 
+        // ale nie czyścimy wyboru użytkownika
+        if (cameraSelect.options.length <= 1) {
+            await updateCameraList();
+        }
+
         scanningActive = true;
         startBarcodeScanning();
     } catch (err) {
-        if (err.name === 'NotReadableError') {
-            alert('Błąd: Kamera jest używana przez inny program lub jest zablokowana w systemie.');
-        } else {
-            alert('Błąd kamery: ' + err.message);
-        }
+        console.error("Błąd kamery:", err);
+        alert('Nie udało się uruchomić wybranej kamery. Upewnij się, że nie jest używana przez inną aplikację.');
     }
 });
     
