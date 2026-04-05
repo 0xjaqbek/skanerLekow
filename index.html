@@ -335,13 +335,13 @@ async function fetchDrugByEAN(eanCode) {
         throw new Error(`Błąd serwera: ${response.status}`);
     }
     
-    const data = await response.json();
+const data = await response.json();
+console.log("SUROWA ODPOWIEDŹ Z API:", data); // <--- DODAJ TO KONIECZNIE
 
-    // 4. Sprawdzenie czy API zwróciło listę (content)
-    // DrugsAPI zazwyczaj zwraca obiekt z polem "content", które jest tablicą
-    if (!data.content || data.content.length === 0) {
-        throw new Error(`Lek o kodzie ${cleanEan} nie istnieje w rejestrze.`);
-    }
+if (!data.content || data.content.length === 0) {
+    // Sprawdź w konsoli czy 'data' ma jakieś inne pola niż 'content'
+    throw new Error(`Lek o kodzie ${cleanEan} nie istnieje w rejestrze.`);
+}
     
     return data.content[0];
 }
