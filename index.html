@@ -307,16 +307,20 @@
     let barcodeDetector = null;
 
     // ---------- Funkcja pomocnicza do wywołania API ----------
-    async function fetchDrugByEAN(eanCode) {
+async function fetchDrugByEAN(eanCode) {
+    // 1. Czyścimy kod ze wszystkiego co nie jest cyfrą
     let cleanEan = eanCode.toString().replace(/\D/g, '');
-    if (cleanEan.length < 8 || cleanEan.length > 14) {
-        throw new Error('Nieprawidłowa długość kodu GTIN/EAN (8-14 cyfr)');
-    }
     
-    const path = `/v1/drugs/by-ean-page/${cleanEan}?page=0&size=1`;
-    const url = BASE_URL + path;
+    // 2. Jeśli skaner zwrócił 14 cyfr i zaczyna się od 0, usuwamy to zero
+    // (To zamienia format GTIN-14 na standardowy EAN-13)
+    if (cleanEan.length === 14 && cleanEan.startsWith('0')) {
+        cleanEan = cleanEan.substring(1);
+    }
 
-    console.log("Próba zapytania do:", url);
+    // 3. Logujemy do konsoli, żebyś widział co dokładnie wysyłasz do API
+    console.log("Wysyłanie zapytania dla EAN:", cleanEan);
+    
+    const url = `${BASE_URL}/v1/drugs/by-ean-page/${cleanEan}?page=0&size=1`;
     
     const response = await fetch(url, {
         method: 'GET',
@@ -327,20 +331,18 @@
     });
     
     if (!response.ok) {
-        if (response.status === 401) throw new Error('BŁĄD 401: Nieprawidłowy klucz API.');
-        if (response.status === 429) throw new Error('Przekroczono limit zapytań.');
-        if (response.status === 404) throw new Error('Nie znaleziono leku.');
-        throw new Error(`HTTP ${response.status}`);
+        if (response.status === 404) throw new Error('Nie znaleziono leku w bazie API.');
+        throw new Error(`Błąd serwera: ${response.status}`);
     }
     
     const data = await response.json();
 
-    // KLUCZOWA ZMIANA: Sprawdzamy czy data.content istnieje i czy ma elementy
-    if (!data.content || !Array.isArray(data.content) || data.content.length === 0) {
-        throw new Error('Brak wyników dla podanego kodu EAN.');
+    // 4. Sprawdzenie czy API zwróciło listę (content)
+    // DrugsAPI zazwyczaj zwraca obiekt z polem "content", które jest tablicą
+    if (!data.content || data.content.length === 0) {
+        throw new Error(`Lek o kodzie ${cleanEan} nie istnieje w rejestrze.`);
     }
     
-    // Zwracamy pierwszy element z listy content
     return data.content[0];
 }
     // Pobranie pełnych szczegółów leku przez ID (dodatkowe pola jak seria/daty ważności? W dokumentacji nie ma bezpośrednio 'seria' ani 'data ważności' – ale dla leków z bazy pokażemy dostępne refundacyjne)
