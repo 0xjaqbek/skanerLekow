@@ -313,7 +313,10 @@
         throw new Error('Nieprawidłowa długość kodu GTIN/EAN (8-14 cyfr)');
     }
     
-    const url = `${BASE_URL}/v1/drugs/by-ean-page/${cleanEan}?page=0&size=1`;
+    const path = `/v1/drugs/by-ean-page/${cleanEan}?page=0&size=1`;
+    const url = BASE_URL + path;
+
+    console.log("Próba zapytania do:", url);
     
     const response = await fetch(url, {
         method: 'GET',
