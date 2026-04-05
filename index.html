@@ -336,14 +336,18 @@ async function fetchDrugByEAN(eanCode) {
     }
     
 const data = await response.json();
-console.log("SUROWA ODPOWIEDŹ Z API:", data); // <--- DODAJ TO KONIECZNIE
+console.log("SUROWA ODPOWIEDŹ Z API:", data);
 
-if (!data.content || data.content.length === 0) {
-    // Sprawdź w konsoli czy 'data' ma jakieś inne pola niż 'content'
+// STARY BŁĘDNY WARUNEK:
+// if (!data.content || data.content.length === 0) { ... }
+
+// NOWY POPRAWNY WARUNEK:
+if (!Array.isArray(data) || data.length === 0) {
     throw new Error(`Lek o kodzie ${cleanEan} nie istnieje w rejestrze.`);
 }
-    
-    return data.content[0];
+
+// ZWRACASZ PIERWSZY ELEMENT TABLICY:
+return data[0];
 }
     // Pobranie pełnych szczegółów leku przez ID (dodatkowe pola jak seria/daty ważności? W dokumentacji nie ma bezpośrednio 'seria' ani 'data ważności' – ale dla leków z bazy pokażemy dostępne refundacyjne)
     // Ponieważ endpoint wyszukiwania EAN zwraca tylko pola skrócone, ale dla pełni informacji możemy dodatkowo wywołać GET /v1/drugs/{id}
