@@ -287,7 +287,7 @@
 <script>
     // ================= KONFIGURACJA ==================
     // UWAGA: Wprowadź swój własny klucz API z planu FREE (https://drugsapi.miniporadnia.pl)
-    const API_KEY = 'cvlcXy_mnJGxwHimNLrgJ_Akot-oKvYjxEx3cMbkvew';   // <-- ZASTĄP SWOIM KLUCZEM !!!
+    const API_KEY = 'b0-bIiQuDuJi4RVETrzksIOlfCGZIViAbXSO6U-vbVo';   // <-- ZASTĄP SWOIM KLUCZEM !!!
     const BASE_URL = 'https://drugsapi.miniporadnia.pl';
     
     // Elementy DOM
@@ -304,41 +304,38 @@
 
     // ---------- Funkcja pomocnicza do wywołania API ----------
     async function fetchDrugByEAN(eanCode) {
-        // czyszczenie kodu: tylko cyfry, usuwanie spacji / myślników
-        let cleanEan = eanCode.toString().replace(/\D/g, '');
-        if (cleanEan.length < 8 || cleanEan.length > 14) {
-            throw new Error('Nieprawidłowa długość kodu GTIN/EAN (8-14 cyfr)');
-        }
-        
-        // endpoint: /v1/drugs/by-ean-page/{ean}?page=0&size=1 (pobieramy pierwszy wynik)
-        const url = `${BASE_URL}/v1/drugs/by-ean-page/${cleanEan}?page=0&size=1`;
-        
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'X-API-Key': API_KEY,
-                'Accept': 'application/json'
-            }
-        });
-        
-        // Obsługa limitów / błędów
-        if (!response.ok) {
-            if (response.status === 401) throw new Error('BŁĄD 401: Nieprawidłowy lub brak klucza API. Sprawdź swój klucz.');
-            if (response.status === 429) throw new Error('Przekroczono limit zapytań (RPS lub miesięczny). Spróbuj za chwilę.');
-            if (response.status === 404) throw new Error('Nie znaleziono leku dla tego kodu EAN.');
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        // API zwraca tablicę (lista leków dla danego EAN, paginacja)
-        if (!Array.isArray(data) || data.length === 0) {
-            throw new Error('Brak wyników dla podanego kodu EAN.');
-        }
-        
-        // Zwracamy pierwszy rekord (zazwyczaj jeden)
-        return data[0];
+    let cleanEan = eanCode.toString().replace(/\D/g, '');
+    if (cleanEan.length < 8 || cleanEan.length > 14) {
+        throw new Error('Nieprawidłowa długość kodu GTIN/EAN (8-14 cyfr)');
     }
     
+    const url = `${BASE_URL}/v1/drugs/by-ean-page/${cleanEan}?page=0&size=1`;
+    
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-API-Key': API_KEY,
+            'Accept': 'application/json'
+        }
+    });
+    
+    if (!response.ok) {
+        if (response.status === 401) throw new Error('BŁĄD 401: Nieprawidłowy klucz API.');
+        if (response.status === 429) throw new Error('Przekroczono limit zapytań.');
+        if (response.status === 404) throw new Error('Nie znaleziono leku.');
+        throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+
+    // KLUCZOWA ZMIANA: Sprawdzamy czy data.content istnieje i czy ma elementy
+    if (!data.content || !Array.isArray(data.content) || data.content.length === 0) {
+        throw new Error('Brak wyników dla podanego kodu EAN.');
+    }
+    
+    // Zwracamy pierwszy element z listy content
+    return data.content[0];
+}
     // Pobranie pełnych szczegółów leku przez ID (dodatkowe pola jak seria/daty ważności? W dokumentacji nie ma bezpośrednio 'seria' ani 'data ważności' – ale dla leków z bazy pokażemy dostępne refundacyjne)
     // Ponieważ endpoint wyszukiwania EAN zwraca tylko pola skrócone, ale dla pełni informacji możemy dodatkowo wywołać GET /v1/drugs/{id}
     async function fetchFullDrugDetails(drugId) {
@@ -561,12 +558,6 @@
         scanFrame();
     }
     
-    // Inicjalne sprawdzenie czy klucz API został zmieniony
-    if (API_KEY === 'cvlcXy_mnJGxwHimNLrgJ_Akot-oKvYjxEx3cMbkvew') {
-        resultArea.innerHTML = '<div class="error">⚠️ UWAGA: Nie ustawiono klucza API. Zarejestruj się na stronie drugsapi.miniporadnia.pl, odbierz darmowy klucz i wklej go w zmiennej API_KEY w kodzie strony (linia ~90).</div>';
-    } else {
-        resultArea.innerHTML = '<div style="background:#eef2ff; border-radius: 24px; padding: 20px; text-align:center;">✨ Wprowadź kod EAN lub kliknij "Skanuj kamerą", aby odczytać kod z opakowania leku. Otrzymasz informacje o nazwie, substancji czynnej, dawce, refundacji i cenie.</div>';
-    }
 </script>
 </body>
 </html>
