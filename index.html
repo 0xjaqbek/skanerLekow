@@ -505,36 +505,27 @@
         }
     }
 
-    cameraBtn.addEventListener('click', async () => {
-        if (mediaStream) {
-            stopCamera();
-        }
-        try {
-            // Krok 1: Wstępne zapytanie o uprawnienia
-            const initialStream = await navigator.mediaDevices.getUserMedia({ video: true });
-            initialStream.getTracks().forEach(track => track.stop());
-            
-            // Krok 2: Pobierz listę kamer
-            await updateCameraList();
-            
-            // Krok 3: Wybierz ID kamery
-            const selectedId = cameraSelect.value;
-            const constraints = selectedId 
-                ? { video: { deviceId: { exact: selectedId } } } 
-                : { video: { facingMode: "environment" } };
-
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            mediaStream = stream;
-            video.srcObject = stream;
-            videoContainer.style.display = 'block';
-            await video.play();
-            scanningActive = true;
-            startBarcodeScanning();
-        } catch (err) {
-            alert('Nie udało się uruchomić kamery: ' + err.message);
-            videoContainer.style.display = 'none';
-        }
-    });
+// Zamiast skomplikowanej logiki, spróbuj najprostszego wywołania:
+cameraBtn.addEventListener('click', async () => {
+    try {
+        const constraints = { 
+            video: { 
+                facingMode: "environment", // Wymusza tylną kamerę w telefonie
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            } 
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        mediaStream = stream;
+        video.srcObject = stream;
+        videoContainer.style.display = 'block';
+        scanningActive = true;
+        startBarcodeScanning();
+            } catch (err) {
+                console.error(err);
+                alert('Błąd kamery: ' + err.name);
+            }
+        });
     
     closeCamBtn.addEventListener('click', () => {
         stopCamera();
