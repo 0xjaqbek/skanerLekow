@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Skaner Leków GTIN - Informacje o leku</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 700px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(2px);
+            border-radius: 40px;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            padding: 24px 28px 32px;
+            transition: all 0.2s ease;
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+        }
+
+        .sub {
+            color: #2c3e66;
+            border-left: 4px solid #3b82f6;
+            padding-left: 14px;
+            margin-bottom: 28px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .input-group input {
+            flex: 3;
+            min-width: 180px;
+            padding: 16px 18px;
+            font-size: 1rem;
+            border: 2px solid #cbd5e1;
+            border-radius: 60px;
+            outline: none;
+            transition: all 0.2s;
+            background: white;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .input-group input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+        }
+
+        .scan-btn {
+            flex: 1;
+            background: #1e3c72;
+            border: none;
+            padding: 16px 20px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+        }
+
+        .scan-btn:hover {
+            background: #0f2a4f;
+            transform: scale(0.97);
+        }
+
+        .camera-btn {
+            background: #2c3e66;
+        }
+
+        .camera-btn:hover {
+            background: #1e2a4a;
+        }
+
+        .video-container {
+            position: relative;
+            margin: 15px 0 20px;
+            border-radius: 28px;
+            overflow: hidden;
+            background: #000;
+            display: none;
+            border: 2px solid #fff;
+            box-shadow: 0 12px 24px -8px rgba(0,0,0,0.3);
+        }
+
+        video {
+            width: 100%;
+            max-height: 280px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .close-cam {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 6px 14px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 32px;
+            font-size: 1.2rem;
+            color: #1e40af;
+            font-weight: 500;
+        }
+
+        .result-card {
+            margin-top: 28px;
+            background: #f8fafc;
+            border-radius: 28px;
+            padding: 16px 20px;
+            border: 1px solid #e2e8f0;
+            transition: 0.2s;
+        }
+
+        .drug-name {
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: #0c4a6e;
+            margin: 0 0 6px 0;
+            word-break: break-word;
+        }
+
+        .substance {
+            font-size: 1rem;
+            color: #334155;
+            background: #e2e8f0;
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 60px;
+            margin-bottom: 18px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 14px;
+            margin-top: 12px;
+        }
+
+        .info-item {
+            background: white;
+            border-radius: 20px;
+            padding: 10px 14px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            border: 1px solid #eef2ff;
+        }
+
+        .info-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #3b82f6;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+            word-break: break-word;
+            margin-top: 4px;
+        }
+
+        .refund-badge {
+            background: #dcfce7;
+            color: #15803d;
+            border-radius: 30px;
+            padding: 4px 12px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
+
+        .error {
+            background: #fee2e2;
+            border-left: 6px solid #dc2626;
+            padding: 16px;
+            border-radius: 24px;
+            color: #991b1b;
+            margin-top: 20px;
+        }
+
+        .footnote {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 24px;
+            color: #4b5563;
+        }
+
+        button:active {
+            transform: scale(0.97);
+        }
+
+        @media (max-width: 550px) {
+            .card {
+                padding: 18px;
+            }
+            .drug-name {
+                font-size: 1.3rem;
+            }
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h1>📦 Skaner Leków GTIN</h1>
+        <div class="sub">Zeskanuj kod kreskowy leku (EAN-13 / GTIN) → poznaj nazwę, substancję, serię, dawkę, refundację</div>
+
+        <div class="input-group">
+            <input type="text" id="gtinInput" placeholder="Wpisz lub zeskanuj kod EAN (np. 5909991486921)" autocomplete="off">
+            <button class="scan-btn" id="searchBtn">🔍 Sprawdź</button>
+            <button class="scan-btn camera-btn" id="cameraBtn">📷 Skanuj kamerą</button>
+        </div>
+
+        <!-- Kamera -->
+        <div id="videoContainer" class="video-container">
+            <video id="video" autoplay playsinline></video>
+            <button id="closeCamBtn" class="close-cam">✕ Zamknij</button>
+        </div>
+
+        <div id="resultArea">
+            <!-- dynamiczne wyniki -->
+        </div>
+        <div class="footnote">
+            ⚡ API: DrugsAPI (dane o lekach, refundacja). Wprowadź prawidłowy kod GTIN/EAN 8-14 cyfr.
+        </div>
+    </div>
+</div>
+
+<script>
+    // ================= KONFIGURACJA ==================
+    // UWAGA: Wprowadź swój własny klucz API z planu FREE (https://drugsapi.miniporadnia.pl)
+    const API_KEY = 'TWÓJ_KLUCZ_API';   // <-- ZASTĄP SWOIM KLUCZEM !!!
+    const BASE_URL = 'https://drugsapi.miniporadnia.pl';
+    
+    // Elementy DOM
+    const gtinInput = document.getElementById('gtinInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const cameraBtn = document.getElementById('cameraBtn');
+    const videoContainer = document.getElementById('videoContainer');
+    const video = document.getElementById('video');
+    const closeCamBtn = document.getElementById('closeCamBtn');
+    const resultArea = document.getElementById('resultArea');
+
+    let mediaStream = null;
+    let barcodeDetector = null;
+
+    // ---------- Funkcja pomocnicza do wywołania API ----------
+    async function fetchDrugByEAN(eanCode) {
+        // czyszczenie kodu: tylko cyfry, usuwanie spacji / myślników
+        let cleanEan = eanCode.toString().replace(/\D/g, '');
+        if (cleanEan.length < 8 || cleanEan.length > 14) {
+            throw new Error('Nieprawidłowa długość kodu GTIN/EAN (8-14 cyfr)');
+        }
+        
+        // endpoint: /v1/drugs/by-ean-page/{ean}?page=0&size=1 (pobieramy pierwszy wynik)
+        const url = `${BASE_URL}/v1/drugs/by-ean-page/${cleanEan}?page=0&size=1`;
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'X-API-Key': API_KEY,
+                'Accept': 'application/json'
+            }
+        });
+        
+        // Obsługa limitów / błędów
+        if (!response.ok) {
+            if (response.status === 401) throw new Error('BŁĄD 401: Nieprawidłowy lub brak klucza API. Sprawdź swój klucz.');
+            if (response.status === 429) throw new Error('Przekroczono limit zapytań (RPS lub miesięczny). Spróbuj za chwilę.');
+            if (response.status === 404) throw new Error('Nie znaleziono leku dla tego kodu EAN.');
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        // API zwraca tablicę (lista leków dla danego EAN, paginacja)
+        if (!Array.isArray(data) || data.length === 0) {
+            throw new Error('Brak wyników dla podanego kodu EAN.');
+        }
+        
+        // Zwracamy pierwszy rekord (zazwyczaj jeden)
+        return data[0];
+    }
+    
+    // Pobranie pełnych szczegółów leku przez ID (dodatkowe pola jak seria/daty ważności? W dokumentacji nie ma bezpośrednio 'seria' ani 'data ważności' – ale dla leków z bazy pokażemy dostępne refundacyjne)
+    // Ponieważ endpoint wyszukiwania EAN zwraca tylko pola skrócone, ale dla pełni informacji możemy dodatkowo wywołać GET /v1/drugs/{id}
+    async function fetchFullDrugDetails(drugId) {
+        const url = `${BASE_URL}/v1/drugs/${drugId}`;
+        const response = await fetch(url, {
+            headers: {
+                'X-API-Key': API_KEY,
+                'Accept': 'application/json'
+            }
+        });
+        if (!response.ok) {
+            console.warn('Nie udało się pobrać pełnych danych, zwracam tylko dane skrócone');
+            return null;
+        }
+        return await response.json();
+    }
+    
+    // Główna funkcja wyświetlająca informacje o leku (z naciskiem na substancję czynną, dawkę, refundację, serię? Uwaga: API nie przechowuje 'serii produkcyjnej' ani 'daty ważności' konkretnej partii, tylko dane rejestracyjne leku. Zgodnie z wymaganiem: substancja czynna, dawka, nazwa, ean, oraz informacje o refundacji i cena detaliczna)
+    async function displayDrugInfo(eanCode) {
+        resultArea.innerHTML = '<div class="loading"><span>⏳ Ładowanie danych leku...</span></div>';
+        
+        try {
+            // 1. Wyszukanie po EAN (skrócony rekord)
+            const shortDrug = await fetchDrugByEAN(eanCode);
+            if (!shortDrug || !shortDrug.id) throw new Error('Nieprawidłowa odpowiedź API');
+            
+            // 2. Pobranie szczegółów (pełny rekord) – by uzyskać m.in. wielkość opakowania, cenę detaliczną, poziom odpłatności, datę ważności pozwolenia (ale nie serię produkcyjną)
+            const fullDrug = await fetchFullDrugDetails(shortDrug.id);
+            const drug = fullDrug || shortDrug;
+            
+            // Przygotowanie danych do wyświetlenia
+            const nazwaLeku = drug.nazwa || shortDrug.nazwa || 'Brak nazwy';
+            const substancja = drug.substCzynna || shortDrug.substCzynna || 'Nie podano';
+            const dawka = drug.dawka || shortDrug.dawka || '---';
+            const postac = drug.postac || shortDrug.postac || '---';
+            const ean = drug.ean || shortDrug.ean || eanCode;
+            const kodAtc = drug.kodAtc || shortDrug.kodAtc || '---';
+            const kategoriaDost = drug.katDostOpak || shortDrug.katDostOpak || '---';
+            const refund = drug.refund === true || shortDrug.refund === true;
+            
+            // Dodatkowe pola z pełnego rekordu
+            const podmiot = drug.podmOdpow || '---';
+            const nrPozwolenia = drug.nrPozw || '---';
+            const waznPozwolenia = drug.waznPozw || '---';   // data ważności pozwolenia (nie partii leku)
+            const wielkoscOpak = drug.wielkoscOpak ? `${drug.wielkoscOpak} ${drug.jednWielkOpak || ''}` : '---';
+            const cenaDetal = drug.cenaDetal ? `${drug.cenaDetal.toFixed(2)} zł` : '---';
+            const poziomOdpl = drug.poziomOdpl || (refund ? 'refundowany' : 'brak refundacji');
+            const wysokoscDopl = drug.wysokDopl ? `${drug.wysokDopl.toFixed(2)} zł` : '---';
+            
+            // Dla serii i daty ważności - API nie przechowuje informacji o konkretnej partii lekowej (dane dla produktu leczniczego jako takiego)
+            // Wymaganie "serii dacie waznosci" – niestety standardowe API rejestru leków nie zawiera serii produkcyjnej, ponieważ dane dotyczą produktu, a nie jednostkowej partii.
+            // W odpowiedzi wyświetlimy komunikat, że seria i data ważności zależą od konkretnego opakowania fizycznego.
+            
+            // Budujemy wynik
+            let html = `
+                <div class="result-card">
+                    <div class="drug-name">💊 ${escapeHtml(nazwaLeku)}</div>
+                    <div><span class="substance">🧪 ${escapeHtml(substancja)}</span></div>
+                    
+                    <div class="info-grid">
+                        <div class="info-item"><div class="info-label">📌 Dawka / Postać</div><div class="info-value">${escapeHtml(dawka)} • ${escapeHtml(postac)}</div></div>
+                        <div class="info-item"><div class="info-label">🔢 Kod EAN (GTIN)</div><div class="info-value">${escapeHtml(ean)}</div></div>
+                        <div class="info-item"><div class="info-label">📋 Kod ATC</div><div class="info-value">${escapeHtml(kodAtc)}</div></div>
+                        <div class="info-item"><div class="info-label">🏥 Kategoria dostępności</div><div class="info-value">${escapeHtml(kategoriaDost)}</div></div>
+            `;
+            
+            if (wielkoscOpak !== '---') {
+                html += `<div class="info-item"><div class="info-label">📦 Wielkość opakowania</div><div class="info-value">${escapeHtml(wielkoscOpak)}</div></div>`;
+            }
+            
+            if (cenaDetal !== '---') {
+                html += `<div class="info-item"><div class="info-label">💰 Cena detaliczna</div><div class="info-value">${escapeHtml(cenaDetal)}</div></div>`;
+            }
+            
+            html += `<div class="info-item"><div class="info-label">💊 Refundacja</div><div class="info-value">${refund ? '<span class="refund-badge">✓ Lek refundowany</span>' : 'Brak refundacji / OTC'}`;
+            if (refund && poziomOdpl !== '---') html += `<br><span style="font-size:0.85rem;">Poziom odpłatności: ${escapeHtml(poziomOdpl)}</span>`;
+            if (refund && wysokoscDopl !== '---') html += `<br><span style="font-size:0.85rem;">Dopłata pacjenta: ${escapeHtml(wysokoscDopl)}</span>`;
+            html += `</div></div>`;
+            
+            if (podmiot !== '---') {
+                html += `<div class="info-item"><div class="info-label">🏢 Podmiot odpowiedzialny</div><div class="info-value">${escapeHtml(podmiot)}</div></div>`;
+            }
+            if (nrPozwolenia !== '---') {
+                html += `<div class="info-item"><div class="info-label">📜 Numer pozwolenia</div><div class="info-value">${escapeHtml(nrPozwolenia)}</div></div>`;
+            }
+            if (waznPozwolenia !== '---') {
+                html += `<div class="info-item"><div class="info-label">📅 Ważność pozwolenia</div><div class="info-value">${escapeHtml(waznPozwolenia)}</div></div>`;
+            }
+            
+            // Dodanie informacji o serii i dacie ważności (zgodnie z wymogiem, ale API nie zawiera tych pól dla partii)
+            html += `
+                <div class="info-item" style="grid-column: span 1; background:#fff7e5;">
+                    <div class="info-label">⚠️ SERIA / DATA WAŻNOŚCI</div>
+                    <div class="info-value" style="font-size:0.85rem;">Informacje o konkretnej serii produkcyjnej i dacie ważności znajdują się na fizycznym opakowaniu leku. Baza API zawiera dane rejestracyjne produktu, nie partii.</div>
+                </div>
+            `;
+            
+            html += `</div></div>`;
+            resultArea.innerHTML = html;
+            
+        } catch (err) {
+            console.error(err);
+            resultArea.innerHTML = `<div class="error">❌ Błąd: ${escapeHtml(err.message)}<br><br>Sprawdź klucz API (pamiętaj o wymianie 'TWÓJ_KLUCZ_API') lub poprawność kodu EAN.</div>`;
+        }
+    }
+    
+    // proste escape przeciw XSS
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        });
+    }
+    
+    // Obsługa przycisku wyszukiwania
+    searchBtn.addEventListener('click', () => {
+        let code = gtinInput.value.trim();
+        if (code === '') {
+            resultArea.innerHTML = '<div class="error">⚠️ Wprowadź lub zeskanuj kod EAN leku.</div>';
+            return;
+        }
+        displayDrugInfo(code);
+    });
+    
+    // Naciśnięcie Enter
+    gtinInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            searchBtn.click();
+        }
+    });
+    
+    // ---------- SKANOWANIE KAMERĄ (QuaggaJS lub BarcodeDetector) ----------
+    // Użyjemy prostego BarcodeDetector API jeśli dostępne, w przeciwnym razie informacja
+    let scanningActive = false;
+    
+    cameraBtn.addEventListener('click', async () => {
+        if (mediaStream) {
+            stopCamera();
+        }
+        try {
+            // Prośba o dostęp do kamery tylnej/przedniej
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            mediaStream = stream;
+            video.srcObject = stream;
+            videoContainer.style.display = 'block';
+            await video.play();
+            scanningActive = true;
+            startBarcodeScanning();
+        } catch (err) {
+            alert('Nie udało się uruchomić kamery: ' + err.message);
+            videoContainer.style.display = 'none';
+        }
+    });
+    
+    closeCamBtn.addEventListener('click', () => {
+        stopCamera();
+        videoContainer.style.display = 'none';
+        if (barcodeDetector && scanningActive) {
+            scanningActive = false;
+        }
+    });
+    
+    function stopCamera() {
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            mediaStream = null;
+        }
+        video.srcObject = null;
+        scanningActive = false;
+    }
+    
+    async function startBarcodeScanning() {
+        // Sprawdzamy czy BarcodeDetector jest wspierany
+        if (!('BarcodeDetector' in window)) {
+            resultArea.innerHTML = '<div class="error">⚠️ Twoja przeglądarka nie obsługuje natywnego skanowania kodów (BarcodeDetector). Zainstaluj QuaggaJS lub użyj ręcznego wpisu.</div>';
+            return;
+        }
+        
+        let detector;
+        try {
+            detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'code_128'] });
+        } catch(e) {
+            resultArea.innerHTML = '<div class="error">Błąd inicjalizacji skanera kodów.</div>';
+            return;
+        }
+        
+        async function scanFrame() {
+            if (!scanningActive || !video.videoWidth || !video.videoHeight) {
+                requestAnimationFrame(scanFrame);
+                return;
+            }
+            try {
+                const barcodes = await detector.detect(video);
+                if (barcodes && barcodes.length > 0) {
+                    const code = barcodes[0].rawValue;
+                    // odfiltrowanie tylko cyfr (EAN)
+                    const numericCode = code.replace(/\D/g, '');
+                    if (numericCode.length >= 8 && numericCode.length <= 14) {
+                        // zatrzymaj skanowanie po udanym odczycie
+                        scanningActive = false;
+                        stopCamera();
+                        videoContainer.style.display = 'none';
+                        gtinInput.value = numericCode;
+                        displayDrugInfo(numericCode);
+                        return;
+                    }
+                }
+            } catch(err) {
+                // ignoruj błędy pojedynczych klatek
+            }
+            if (scanningActive) {
+                requestAnimationFrame(scanFrame);
+            }
+        }
+        scanFrame();
+    }
+    
+    // Inicjalne sprawdzenie czy klucz API został zmieniony
+    if (API_KEY === 'TWÓJ_KLUCZ_API') {
+        resultArea.innerHTML = '<div class="error">⚠️ UWAGA: Nie ustawiono klucza API. Zarejestruj się na stronie drugsapi.miniporadnia.pl, odbierz darmowy klucz i wklej go w zmiennej API_KEY w kodzie strony (linia ~90).</div>';
+    } else {
+        resultArea.innerHTML = '<div style="background:#eef2ff; border-radius: 24px; padding: 20px; text-align:center;">✨ Wprowadź kod EAN lub kliknij "Skanuj kamerą", aby odczytać kod z opakowania leku. Otrzymasz informacje o nazwie, substancji czynnej, dawce, refundacji i cenie.</div>';
+    }
+</script>
+</body>
+</html>
