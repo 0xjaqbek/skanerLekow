@@ -585,7 +585,7 @@ cameraBtn.addEventListener('click', async () => {
         
         let detector;
         try {
-            detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'code_128'] });
+            detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'data_matrix', 'qr_code'] });
         } catch(e) {
             resultArea.innerHTML = '<div class="error">Błąd inicjalizacji skanera kodów.</div>';
             return;
@@ -600,6 +600,10 @@ cameraBtn.addEventListener('click', async () => {
                 const barcodes = await detector.detect(video);
                 if (barcodes && barcodes.length > 0) {
                     const code = barcodes[0].rawValue;
+                    if (code.startsWith('01')) {
+                        // Numer GTIN to 14 cyfr po identyfikatorze (01)
+                        code = code.substring(2, 16); 
+                    }
                     // odfiltrowanie tylko cyfr (EAN)
                     const numericCode = code.replace(/\D/g, '');
                     if (numericCode.length >= 8 && numericCode.length <= 14) {
