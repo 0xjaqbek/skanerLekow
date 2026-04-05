@@ -505,27 +505,37 @@
         }
     }
 
-// Zamiast skomplikowanej logiki, spróbuj najprostszego wywołania:
 cameraBtn.addEventListener('click', async () => {
+    if (mediaStream) stopCamera();
+
     try {
+        // Skrócona wersja bez "testowania" uprawnień przed właściwym startem
         const constraints = { 
             video: { 
-                facingMode: "environment", // Wymusza tylną kamerę w telefonie
+                facingMode: "environment", // tylna kamera
                 width: { ideal: 1280 },
                 height: { ideal: 720 }
             } 
         };
+        
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         mediaStream = stream;
         video.srcObject = stream;
         videoContainer.style.display = 'block';
+        
+        // Aktualizacja listy kamer dopiero PO uzyskaniu dostępu (opcjonalnie)
+        updateCameraList(); 
+        
         scanningActive = true;
         startBarcodeScanning();
-            } catch (err) {
-                console.error(err);
-                alert('Błąd kamery: ' + err.name);
-            }
-        });
+    } catch (err) {
+        if (err.name === 'NotReadableError') {
+            alert('Błąd: Kamera jest używana przez inny program lub jest zablokowana w systemie.');
+        } else {
+            alert('Błąd kamery: ' + err.message);
+        }
+    }
+});
     
     closeCamBtn.addEventListener('click', () => {
         stopCamera();
