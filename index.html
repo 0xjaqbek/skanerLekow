@@ -267,6 +267,9 @@
             <input type="text" id="gtinInput" placeholder="Wpisz lub zeskanuj kod EAN (np. 5909991486921)" autocomplete="off">
             <button class="scan-btn" id="searchBtn">🔍 Sprawdź</button>
             <button class="scan-btn camera-btn" id="cameraBtn">📷 Skanuj kamerą</button>
+            <select id="cameraSelect" class="scan-btn" style="background: #475569; display: none;">
+                <option value="">Wybierz kamerę...</option>
+            </select>
         </div>
 
         <!-- Kamera -->
@@ -298,6 +301,7 @@
     const video = document.getElementById('video');
     const closeCamBtn = document.getElementById('closeCamBtn');
     const resultArea = document.getElementById('resultArea');
+    const cameraSelect = document.getElementById('cameraSelect');
 
     let mediaStream = null;
     let barcodeDetector = null;
@@ -475,14 +479,51 @@
     // ---------- SKANOWANIE KAMERĄ (QuaggaJS lub BarcodeDetector) ----------
     // Użyjemy prostego BarcodeDetector API jeśli dostępne, w przeciwnym razie informacja
     let scanningActive = false;
-    
+
+    async function updateCameraList() {
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        
+        cameraSelect.innerHTML = '';
+        
+        if (videoDevices.length === 0) {
+            cameraSelect.style.display = 'none';
+            return;
+        }
+
+        videoDevices.forEach((device, index) => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.text = device.label || `Kamera ${index + 1}`;
+            cameraSelect.appendChild(option);
+        });
+
+        cameraSelect.style.display = 'inline-flex';
+        } catch (err) {
+            console.error("Błąd pobierania listy kamer:", err);
+        }
+    }
+
     cameraBtn.addEventListener('click', async () => {
         if (mediaStream) {
             stopCamera();
         }
         try {
-            // Prośba o dostęp do kamery tylnej/przedniej
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            // Krok 1: Wstępne zapytanie o uprawnienia
+            const initialStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            initialStream.getTracks().forEach(track => track.stop());
+            
+            // Krok 2: Pobierz listę kamer
+            await updateCameraList();
+            
+            // Krok 3: Wybierz ID kamery
+            const selectedId = cameraSelect.value;
+            const constraints = selectedId 
+                ? { video: { deviceId: { exact: selectedId } } } 
+                : { video: { facingMode: "environment" } };
+
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
             mediaStream = stream;
             video.srcObject = stream;
             videoContainer.style.display = 'block';
@@ -500,6 +541,13 @@
         videoContainer.style.display = 'none';
         if (barcodeDetector && scanningActive) {
             scanningActive = false;
+        }
+    });
+
+    cameraSelect.addEventListener('change', () => {
+    if (scanningActive) {
+        // Jeśli skanowanie trwa, restartujemy kamerę z nowym ID
+        cameraBtn.click();
         }
     });
     
